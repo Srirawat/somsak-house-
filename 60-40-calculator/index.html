@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="เครื่องคำนวณสัดส่วนโครงการคนละครึ่ง 60/40 แบบง่าย ไม่เก็บข้อมูล"
+    />
+    <meta name="theme-color" content="#173c68" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23173c68'/%3E%3Cpath d='M12 35h40' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='23' cy='24' r='7' fill='%23ffcc4d'/%3E%3Ccircle cx='41' cy='46' r='7' fill='%2369d5c5'/%3E%3C/svg%3E"
+    />
+    <title>คิดง่าย 60/40</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#calculator" aria-label="คิดง่าย 60/40 หน้าหลัก">
+          <span class="brand-mark" aria-hidden="true">
+            <span>60</span><i></i><span>40</span>
+          </span>
+          <span class="brand-copy">
+            <strong>คิดง่าย 60/40</strong>
+            <small>เครื่องคำนวณเงินร่วมจ่าย</small>
+          </span>
+        </a>
+        <span class="privacy-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3M6 10h12v10H6z"/></svg>
+          ไม่เก็บข้อมูล
+        </span>
+      </header>
+
+      <main id="calculator" class="calculator" aria-labelledby="page-title">
+        <section class="intro">
+          <p class="eyebrow">คำนวณได้ทันที</p>
+          <h1 id="page-title">มีเงินเท่าไหร่<br /><span>จ่ายได้เท่าไหร่?</span></h1>
+          <p>เลือกสิ่งที่คุณรู้ แล้วกรอกจำนวนเงิน ระบบจะแบ่งสัดส่วนรัฐบาล 60% และประชาชน 40% ให้ทันที</p>
+        </section>
+
+        <section class="calculator-card" aria-label="เครื่องคำนวณ">
+          <div class="ratio-strip" aria-label="รัฐบาล 60 เปอร์เซ็นต์ ประชาชน 40 เปอร์เซ็นต์">
+            <span class="government-ratio"><strong>60%</strong> รัฐบาล</span>
+            <span class="citizen-ratio"><strong>40%</strong> ประชาชน</span>
+          </div>
+
+          <div class="mode-wrap">
+            <p class="step-label"><span>1</span> เลือกสิ่งที่คุณรู้</p>
+            <div class="mode-tabs" role="tablist" aria-label="รูปแบบการคำนวณ">
+              <button class="mode-tab is-active" type="button" role="tab" aria-selected="true" data-mode="government">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3l9 4H3z"/></svg>
+                <span>เงินรัฐบาล</span>
+              </button>
+              <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="citizen">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                <span>เงินประชาชน</span>
+              </button>
+              <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="total">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4zM7 8a5 5 0 0 1 10 0M8 13h8"/></svg>
+                <span>ราคาสินค้า</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-section">
+            <label id="amount-label" for="amount"><span class="step-number">2</span> เงินรัฐบาลมีเท่าไหร่?</label>
+            <div class="money-input-wrap">
+              <span aria-hidden="true">฿</span>
+              <input
+                id="amount"
+                name="amount"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0"
+                aria-describedby="input-help input-error"
+              />
+              <span class="unit">บาท</span>
+            </div>
+            <p id="input-help" class="input-help">เช่น มีเงินรัฐบาล 600 บาท</p>
+            <p id="input-error" class="input-error" role="alert" aria-live="polite"></p>
+          </div>
+
+          <div class="result-section" aria-live="polite">
+            <div class="result-heading">
+              <p class="step-label"><span>3</span> ผลการคำนวณ</p>
+              <button id="clear-button" class="clear-button" type="button">ล้างค่า</button>
+            </div>
+
+            <div class="result-grid">
+              <article class="result-item government-result">
+                <div class="result-icon government-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3l9 4H3z"/></svg>
+                </div>
+                <div>
+                  <p>รัฐบาลจ่าย</p>
+                  <strong id="government-result">—</strong><span> บาท</span>
+                </div>
+              </article>
+              <span class="plus-sign" aria-hidden="true">+</span>
+              <article class="result-item citizen-result">
+                <div class="result-icon citizen-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                </div>
+                <div>
+                  <p>ประชาชนจ่าย</p>
+                  <strong id="citizen-result">—</strong><span> บาท</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="total-result">
+              <div>
+                <p>ยอดที่ใช้จ่ายได้รวม</p>
+                <small id="result-explanation">กรอกจำนวนเงินด้านบนเพื่อเริ่มคำนวณ</small>
+              </div>
+              <strong><span id="total-result">—</span> <small>บาท</small></strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="tip-card">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M8.5 15.5A7 7 0 1 1 15.5 15.5L15 16H9z"/></svg>
+          <div>
+            <strong>จำง่าย ๆ</strong>
+            <p>ทุก 100 บาท รัฐบาลช่วย 60 บาท และประชาชนจ่าย 40 บาท</p>
+          </div>
+        </aside>
+      </main>
+
+      <footer>
+        <p>คำนวณสดบนอุปกรณ์ของคุณ · ไม่มีการสมัครสมาชิก · ไม่มีการบันทึกข้อมูล</p>
+        <p class="disclaimer">ตัวเลขนี้เป็นการคำนวณตามสัดส่วน 60/40 เท่านั้น โปรดตรวจสอบเงื่อนไขและวงเงินจริงของโครงการก่อนใช้จ่าย</p>
+      </footer>
+    </div>
+  </body>
+</html>
