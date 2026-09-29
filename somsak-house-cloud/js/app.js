@@ -32,6 +32,7 @@ const PAGES = {
 
 const app = document.getElementById('app');
 let user = null;
+let shellKeyHandler = null;
 
 async function main() {
   if (!configOK()) {
@@ -74,6 +75,7 @@ async function route() {
   main.innerHTML = '<div class="muted">กำลังโหลด...</div>';
   try {
     await PAGES[id](main, { user });
+    main.querySelectorAll('table').forEach(makeTableScrollable);
   } catch (err) {
     console.error(err);
     main.innerHTML = `<div class="card">เกิดข้อผิดพลาด: ${esc(err.message)}</div>`;
@@ -140,9 +142,12 @@ function renderShell() {
   const menus = MENUS.filter(m => can(user, m.id));
   app.innerHTML = `
   <header class="topbar">
-    <div class="brand">🏠 Somsak House <span style="font-size:11px;opacity:.7">CLOUD</span></div>
+    <button class="nav-toggle" id="navToggle" type="button" aria-controls="appNav"
+      aria-expanded="false" aria-label="เปิดเมนูหลัก">☰</button>
+    <div class="brand">🏠 <span>Somsak House</span> <small>CLOUD</small></div>
     <div class="usermenu">
-      <button id="userBtn">👤 ${esc(user.username)} <span class="muted" style="color:#cde">(${esc(user.role)})</span> ▾</button>
+      <button id="userBtn" aria-expanded="false">👤 <span class="user-name">${esc(user.username)}</span>
+        <span class="user-role">(${esc(user.role)})</span> ▾</button>
       <div class="dropdown" id="userDrop" hidden>
         <button id="btnExport">⬇️ สำรองข้อมูล (Export)</button>
         <button id="btnImport">⬆️ นำเข้าข้อมูล (Import)</button>
@@ -152,16 +157,42 @@ function renderShell() {
     </div>
   </header>
   <div class="layout">
-    <nav class="nav">${menus.map(m => `<a href="#/${m.id}" data-id="${m.id}">${m.label}</a>`).join('')}</nav>
+    <nav class="nav" id="appNav" aria-label="เมนูหลัก">${menus.map(m => `<a href="#/${m.id}" data-id="${m.id}">${m.label}</a>`).join('')}</nav>
+    <button class="nav-backdrop" id="navBackdrop" type="button" aria-label="ปิดเมนู" tabindex="-1"></button>
     <main id="main"></main>
   </div>
   <input type="file" id="importFile" accept="application/json" hidden>`;
 
   const drop = document.getElementById('userDrop');
-  document.getElementById('userBtn').onclick = () => { drop.hidden = !drop.hidden; };
+  const userBtn = document.getElementById('userBtn');
+  userBtn.onclick = () => {
+    drop.hidden = !drop.hidden;
+    userBtn.setAttribute('aria-expanded', String(!drop.hidden));
+  };
   document.addEventListener('click', e => {
-    if (!e.target.closest('.usermenu')) drop.hidden = true;
+    if (!e.target.closest('.usermenu')) {
+      drop.hidden = true;
+      userBtn.setAttribute('aria-expanded', 'false');
+    }
   });
+
+  const navToggle = document.getElementById('navToggle');
+  const closeNav = () => {
+    document.body.classList.remove('nav-open');
+    navToggle.setAttribute('aria-expanded', 'false');
+    navToggle.setAttribute('aria-label', 'เปิดเมนูหลัก');
+  };
+  const toggleNav = () => {
+    const open = document.body.classList.toggle('nav-open');
+    navToggle.setAttribute('aria-expanded', String(open));
+    navToggle.setAttribute('aria-label', open ? 'ปิดเมนูหลัก' : 'เปิดเมนูหลัก');
+  };
+  navToggle.onclick = toggleNav;
+  document.getElementById('navBackdrop').onclick = closeNav;
+  document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', closeNav));
+  if (shellKeyHandler) document.removeEventListener('keydown', shellKeyHandler);
+  shellKeyHandler = e => { if (e.key === 'Escape') closeNav(); };
+  document.addEventListener('keydown', shellKeyHandler);
 
   document.getElementById('btnExport').onclick = async () => {
     drop.hidden = true;
@@ -192,8 +223,20 @@ function renderShell() {
   };
 
   document.getElementById('btnLogout').onclick = async () => {
+    closeNav();
     await logout(); user = null; location.hash = ''; renderLogin();
   };
+}
+
+function makeTableScrollable(table) {
+  if (table.parentElement?.classList.contains('table-scroll')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'table-scroll';
+  wrap.tabIndex = 0;
+  wrap.setAttribute('role', 'region');
+  wrap.setAttribute('aria-label', 'ตารางข้อมูล เลื่อนซ้ายขวาได้');
+  table.before(wrap);
+  wrap.appendChild(table);
 }
 
 main().catch(err => {

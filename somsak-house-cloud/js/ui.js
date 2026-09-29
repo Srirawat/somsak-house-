@@ -35,6 +35,11 @@ export function modal(innerHTML) {
   const close = () => back.remove();
   back.addEventListener('click', e => { if (e.target === back) close(); });
   document.body.appendChild(back);
+  back.querySelectorAll('table').forEach(table => {
+    const wrap = h('<div class="table-scroll" role="region" aria-label="ตารางข้อมูล เลื่อนซ้ายขวาได้" tabindex="0"></div>');
+    table.before(wrap);
+    wrap.appendChild(table);
+  });
   return { el: back.querySelector('.modal'), close };
 }
 
