@@ -1,5 +1,6 @@
-// auth.js — Supabase Auth (อีเมล+รหัสผ่าน) + โปรไฟล์/RBAC + เลขบิล (ผ่าน RPC)
+// auth.js — Supabase Auth + โปรไฟล์/RBAC/เลขบิลใน Google Sheets
 import { supabase } from './supabase.js';
+import { callSheetsApi, publicSheetsApi } from './sheets-api.js';
 
 export const ROOMS = Array.from({ length: 11 }, (_, i) => String(2001 + i));
 
@@ -36,23 +37,8 @@ function thError(msg) {
   return msg;
 }
 
-// โครงสร้างตาราง + ค่าตั้งต้นทำไว้ใน schema.sql แล้ว
+// โครงสร้างแท็บ + ค่าตั้งต้นสร้างด้วยฟังก์ชัน setup() ใน Apps Script
 export async function seed() {}
-
-async function fetchProfile(uid) {
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
-  if (error) throw new Error(thError(error.message));
-  return data;
-}
-
-function toUser(p, email) {
-  return {
-    id: p.id, username: p.username, role: p.role, active: p.active,
-    perms: p.perms, room: p.room,
-    createdAt: p.created_at ? Date.parse(p.created_at) : Date.now(),
-    email,
-  };
-}
 
 // ล็อกอินด้วย "ชื่อผู้ใช้" — เบื้องหลังยังใช้ Supabase Auth (อีเมล)
 // บัญชีที่ไม่ได้กรอกอีเมลจริง จะได้อีเมลภายในระบบ username@somsak.local
@@ -63,13 +49,12 @@ function internalEmail(username) {
   return `${slug}@${INTERNAL_DOMAIN}`;
 }
 
-// หาอีเมลของบัญชีจากชื่อผู้ใช้ (ผ่านฟังก์ชันในฐานข้อมูล — ไม่ต้องล็อกอินก่อน)
+// หาอีเมลของบัญชีจากชื่อผู้ใช้ใน Google Sheets (ไม่ต้องล็อกอินก่อน)
 async function emailOfUsername(username) {
   const u = String(username || '').trim();
   if (u.includes('@')) return u; // กรอกเป็นอีเมลมาเลยก็ได้
-  const { data, error } = await supabase.rpc('email_for_username', { uname: u });
-  if (error || !data) return internalEmail(u); // เผื่อยังไม่ได้อัปเดต schema
-  return data;
+  try { return await publicSheetsApi('emailForUsername', { username: u }) || internalEmail(u); }
+  catch { return internalEmail(u); }
 }
 
 export async function register(username, password, email = '') {
@@ -85,6 +70,7 @@ export async function register(username, password, email = '') {
     options: { data: { username } },
   });
   if (error) throw new Error(thError(error.message));
+  if (data.session) await callSheetsApi('registerProfile');
   return data;
 }
 
@@ -92,10 +78,10 @@ export async function login(username, password) {
   const email = await emailOfUsername(username);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(thError(error.message));
-  const p = await fetchProfile(data.user.id);
+  const p = await callSheetsApi('profile');
   if (!p) { await supabase.auth.signOut(); throw new Error('ไม่พบโปรไฟล์ผู้ใช้ — ติดต่อผู้ดูแลระบบ'); }
   if (!p.active) { await supabase.auth.signOut(); throw new Error('บัญชีนี้ถูกระงับ'); }
-  return toUser(p, data.user.email);
+  return { ...p, email: data.user.email };
 }
 
 export async function logout() { await supabase.auth.signOut(); }
@@ -103,9 +89,9 @@ export async function logout() { await supabase.auth.signOut(); }
 export async function currentUser() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
-  const p = await fetchProfile(session.user.id).catch(() => null);
+  const p = await callSheetsApi('profile').catch(() => null);
   if (!p || !p.active) return null;
-  return toUser(p, session.user.email);
+  return { ...p, email: session.user.email };
 }
 
 export async function resetPassword(email) {
@@ -127,7 +113,7 @@ export function onPasswordRecovery(handler) {
   });
 }
 
-// ---- RBAC (ตรรกะเดิม + บังคับซ้ำด้วย RLS ฝั่งเซิร์ฟเวอร์) ----
+// ---- RBAC (ตรรกะเดิม + บังคับซ้ำใน Apps Script ฝั่งเซิร์ฟเวอร์) ----
 export function can(user, menuId) {
   if (!user || !user.active) return false;
   if (user.role === 'tester') return true;
@@ -148,9 +134,7 @@ export function canManage(actor, target) {
   return false;
 }
 
-// เลขบิล — นับกลางที่ฐานข้อมูล ปลอดภัยเมื่อขายพร้อมกันหลายเครื่อง
+// เลขบิล — นับกลางใน Google Sheets ด้วย LockService ป้องกันเลขชนกัน
 export async function nextBillNo() {
-  const { data, error } = await supabase.rpc('next_bill_no');
-  if (error) throw new Error(thError(error.message));
-  return data;
+  return await callSheetsApi('nextBillNo');
 }
