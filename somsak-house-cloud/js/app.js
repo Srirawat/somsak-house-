@@ -1,6 +1,7 @@
 // app.js — bootstrap + router + header (เวอร์ชัน Cloud: Supabase)
 import { openDB } from './db.js';
 import { configOK } from './supabase.js';
+import { dataConfigOK } from './sheets-api.js';
 import {
   seed, currentUser, login, register, logout, can, MENUS,
   resetPassword, updatePassword, onPasswordRecovery,
@@ -35,9 +36,9 @@ let user = null;
 let shellKeyHandler = null;
 
 async function main() {
-  if (!configOK()) {
-    app.innerHTML = `<div class="boot">⚙️ ยังไม่ได้ตั้งค่า Supabase<br><br>
-      เปิดไฟล์ <b>js/config.js</b> แล้วใส่ SUPABASE_URL และ SUPABASE_ANON_KEY<br>
+  if (!configOK() || !dataConfigOK()) {
+    app.innerHTML = `<div class="boot">⚙️ ยังตั้งค่าระบบ Cloud ไม่ครบ<br><br>
+      เปิดไฟล์ <b>js/config.js</b> แล้วตรวจ Supabase และ GOOGLE_SCRIPT_URL<br>
       ดูขั้นตอนทั้งหมดใน <b>SETUP.md</b></div>`;
     return;
   }
@@ -86,7 +87,7 @@ function renderLogin() {
   app.innerHTML = `
   <div class="login-wrap"><div class="login-card">
     <h1>🏠 Somsak House</h1>
-    <p>ระบบจัดการร้าน/ที่พัก (Cloud — Supabase)</p>
+    <p>ระบบจัดการร้าน/ที่พัก (Supabase Auth + Google Sheets)</p>
     <form id="loginForm">
       <div><label>ชื่อผู้ใช้</label><input id="lu" required autocomplete="username" autocapitalize="none" spellcheck="false"></div>
       <div><label>รหัสผ่าน</label><input id="lp" type="password" required autocomplete="current-password"></div>
@@ -242,5 +243,5 @@ function makeTableScrollable(table) {
 main().catch(err => {
   console.error(err);
   app.innerHTML = `<div class="boot">เชื่อมต่อระบบไม่สำเร็จ: ${esc(err.message)}<br>
-  ตรวจค่าใน js/config.js และการตั้งค่า Supabase ตาม SETUP.md</div>`;
+  ตรวจค่าใน js/config.js, Supabase Auth และ Google Apps Script ตาม SETUP.md</div>`;
 });
