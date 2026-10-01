@@ -20,15 +20,22 @@ export async function dbPut(store, value) {
 
 export async function dbGet(store, key) {
   const value = await callSheetsApi('dbGet', { store, key: String(key) });
+  if (value !== null && (typeof value !== 'object' || Array.isArray(value))) {
+    throw new Error(`Google Sheets ส่งข้อมูล ${store} ไม่ถูกต้อง`);
+  }
   return value ?? undefined;
 }
 
 export async function dbAll(store) {
-  return await callSheetsApi('dbAll', { store });
+  const rows = await callSheetsApi('dbAll', { store });
+  if (!Array.isArray(rows)) throw new Error(`Google Sheets ส่งรายการ ${store} ไม่ถูกต้อง`);
+  return rows;
 }
 
 export async function dbAllBy(store, indexName, val) {
-  return await callSheetsApi('dbAllBy', { store, indexName, value: val });
+  const rows = await callSheetsApi('dbAllBy', { store, indexName, value: val });
+  if (!Array.isArray(rows)) throw new Error(`Google Sheets ส่งรายการ ${store} ไม่ถูกต้อง`);
+  return rows;
 }
 
 export async function dbDel(store, key) {

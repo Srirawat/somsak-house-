@@ -21,9 +21,10 @@ export async function publicSheetsApi(action, params = {}) {
   if (!dataConfigOK()) throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script URL');
   const url = new URL(GOOGLE_SCRIPT_URL);
   url.searchParams.set('action', action);
+  url.searchParams.set('_', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value ?? '')));
   try {
-    return await parseResponse(await fetch(url));
+    return await parseResponse(await fetch(url, { cache: 'no-store' }));
   } catch (err) {
     if (/Google Apps Script|deployment|Sheets API/.test(err.message)) throw err;
     throw new Error('เชื่อมต่อ Google Sheets ไม่ได้ — ตรวจอินเทอร์เน็ตและ Apps Script deployment');
@@ -35,10 +36,13 @@ export async function callSheetsApi(action, payload = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('กรุณาเข้าสู่ระบบใหม่');
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
+    const url = new URL(GOOGLE_SCRIPT_URL);
+    url.searchParams.set('_', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, token: session.access_token, ...payload }),
+      cache: 'no-store',
     });
     return await parseResponse(response);
   } catch (err) {
