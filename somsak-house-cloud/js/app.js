@@ -34,6 +34,7 @@ const PAGES = {
 const app = document.getElementById('app');
 let user = null;
 let shellKeyHandler = null;
+let routeSeq = 0;
 
 async function main() {
   if (!configOK() || !dataConfigOK()) {
@@ -63,6 +64,7 @@ function firstAllowed() {
 }
 
 async function route() {
+  const seq = ++routeSeq;
   let id = location.hash.replace(/^#\/?/, '');
   if (!PAGES[id]) id = firstAllowed();
   if (!can(user, id)) {
@@ -74,10 +76,14 @@ async function route() {
   document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.id === id));
   const main = document.getElementById('main');
   main.innerHTML = '<div class="muted">กำลังโหลด...</div>';
+  const view = document.createElement('div');
   try {
-    await PAGES[id](main, { user });
-    main.querySelectorAll('table').forEach(makeTableScrollable);
+    await PAGES[id](view, { user });
+    if (seq !== routeSeq) return;
+    view.querySelectorAll('table').forEach(makeTableScrollable);
+    main.replaceChildren(...view.childNodes);
   } catch (err) {
+    if (seq !== routeSeq) return;
     console.error(err);
     main.innerHTML = `<div class="card">เกิดข้อผิดพลาด: ${esc(err.message)}</div>`;
   }
