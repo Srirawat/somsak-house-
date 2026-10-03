@@ -46,12 +46,14 @@ export default async function render(root, { user }) {
   function renderGrid(filter = '') {
     const f = filter.trim().toLowerCase();
     const list = products.filter(p =>
-      !f || p.name.toLowerCase().includes(f) || (p.barcode || '').toLowerCase().includes(f));
+      !f || p.name.toLowerCase().includes(f) || (p.barcode || '').toLowerCase().includes(f)
+      || (p.category || '').toLowerCase().includes(f) || (p.location || '').toLowerCase().includes(f));
     grid.innerHTML = list.length ? list.map(p => `
       <div class="prod-card" data-id="${p.id}">
         <div class="name">${esc(p.name)}</div>
         <div class="price">${fmtMoney(p.price)} ฿</div>
         <div class="stk">คงเหลือ ${fmtInt(p.stock)}</div>
+        ${p.location ? `<div class="stk">${esc(p.location)}</div>` : ''}
       </div>`).join('')
       : '<div class="muted">ไม่พบสินค้า — เพิ่มได้ที่เมนู "รายละเอียดสินค้า"</div>';
     grid.querySelectorAll('.prod-card').forEach(el =>

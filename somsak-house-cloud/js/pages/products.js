@@ -10,21 +10,23 @@ export default async function render(root, { user }) {
   <h2>รายละเอียดสินค้า</h2>
   <div class="card">
     <div class="row">
-      <div style="flex:1"><label>ค้นหา (ชื่อ/บาร์โค้ด)</label><input id="q" style="width:100%"></div>
+      <div style="flex:1"><label>ค้นหา (ชื่อ/บาร์โค้ด/ตำแหน่ง)</label><input id="q" style="width:100%"></div>
       <div><label>หมวดหมู่</label><select id="cat"><option value="">ทั้งหมด</option></select></div>
+      <div><label>ตำแหน่งขาย</label><select id="loc"><option value="">ทั้งหมด</option></select></div>
       <div><button class="primary" id="btnAdd">+ เพิ่มสินค้า</button></div>
     </div>
     <div id="lowWarn"></div>
   </div>
   <div class="card">
-    <table><thead><tr>
-      <th>รูป</th><th>ชื่อสินค้า</th><th>บาร์โค้ด</th><th>หมวด</th>
+    <div class="table-scroll" tabindex="0" aria-label="ตารางรายละเอียดสินค้า"><table><thead><tr>
+      <th>รูป</th><th>ชื่อสินค้า</th><th>บาร์โค้ด</th><th>หมวด</th><th>ตำแหน่งขาย</th>
       <th class="num">ราคาขาย</th><th class="num">คงเหลือ</th><th class="num">จุดสั่งซื้อ</th><th></th>
-    </tr></thead><tbody id="body"></tbody></table>
+    </tr></thead><tbody id="body"></tbody></table></div>
   </div>`;
 
   const q = root.querySelector('#q');
   const cat = root.querySelector('#cat');
+  const loc = root.querySelector('#loc');
   const body = root.querySelector('#body');
 
   function refreshCats() {
@@ -32,13 +34,20 @@ export default async function render(root, { user }) {
     const cur = cat.value;
     cat.innerHTML = '<option value="">ทั้งหมด</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
     cat.value = cur;
+
+    const locations = [...new Set(products.map(p => p.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
+    const curLoc = loc.value;
+    loc.innerHTML = '<option value="">ทั้งหมด</option>' + locations.map(v => `<option>${esc(v)}</option>`).join('');
+    loc.value = curLoc;
   }
 
   function renderList() {
     const f = q.value.trim().toLowerCase();
     const list = products
-      .filter(p => !f || p.name.toLowerCase().includes(f) || (p.barcode || '').toLowerCase().includes(f))
+      .filter(p => !f || p.name.toLowerCase().includes(f) || (p.barcode || '').toLowerCase().includes(f)
+        || (p.location || '').toLowerCase().includes(f))
       .filter(p => !cat.value || p.category === cat.value)
+      .filter(p => !loc.value || p.location === loc.value)
       .sort((a, b) => a.name.localeCompare(b.name, 'th'));
 
     body.innerHTML = list.length ? list.map(p => {
@@ -48,13 +57,14 @@ export default async function render(root, { user }) {
         <td>${esc(p.name)} ${low ? '<span class="badge warn">สต็อกต่ำ</span>' : ''}</td>
         <td>${esc(p.barcode || '—')}</td>
         <td>${esc(p.category || '—')}</td>
+        <td>${esc(p.location || '—')}</td>
         <td class="num">${fmtMoney(p.price)}</td>
         <td class="num">${fmtInt(p.stock)}</td>
         <td class="num">${fmtInt(p.minStock ?? 0)}</td>
         <td><button class="edit" data-id="${p.id}">แก้ไข</button>
             <button class="danger del" data-id="${p.id}">ลบ</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="muted">ยังไม่มีสินค้า</td></tr>';
+    }).join('') : '<tr><td colspan="9" class="muted">ยังไม่มีสินค้า</td></tr>';
 
     const lows = products.filter(p => (p.stock || 0) <= (p.minStock ?? 0));
     root.querySelector('#lowWarn').innerHTML = lows.length
@@ -73,7 +83,7 @@ export default async function render(root, { user }) {
 
   function openForm(p = null) {
     const isNew = !p;
-    p = p || { id: uuid(), name: '', barcode: '', category: '', price: 0, cost: 0, stock: 0, minStock: 3, image: null };
+    p = p || { id: uuid(), name: '', barcode: '', category: '', location: '', price: 0, cost: 0, stock: 0, minStock: 3, image: null };
     const m = modal(`
       <h3>${isNew ? 'เพิ่มสินค้า' : 'แก้ไขสินค้า'}</h3>
       <form id="f">
@@ -87,6 +97,8 @@ export default async function render(root, { user }) {
           <div><label>หมวดหมู่</label><input id="fcat" value="${esc(p.category || '')}" list="catList">
             <datalist id="catList">${[...new Set(products.map(x => x.category).filter(Boolean))].map(c => `<option>${esc(c)}</option>`).join('')}</datalist></div>
         </div>
+        <div><label>ตำแหน่งขาย / ชั้นวาง</label><input id="floc" value="${esc(p.location || '')}" list="locList" placeholder="เช่น ตู้แช่โค้ก หรือ ชั้น A1">
+          <datalist id="locList">${[...new Set(products.map(x => x.location).filter(Boolean))].map(v => `<option>${esc(v)}</option>`).join('')}</datalist></div>
         <div class="row">
           <div><label>ราคาขาย (บาท) *</label><input id="fprice" type="number" min="0" step="0.01" required value="${p.price}"></div>
           <div><label>ต้นทุน (บาท)</label><input id="fcost" type="number" min="0" step="0.01" value="${p.cost || 0}"></div>
@@ -129,6 +141,7 @@ export default async function render(root, { user }) {
         name: m.el.querySelector('#fname').value.trim(),
         barcode: m.el.querySelector('#fbar').value.trim(),
         category: m.el.querySelector('#fcat').value.trim(),
+        location: m.el.querySelector('#floc').value.trim(),
         price: +m.el.querySelector('#fprice').value || 0,
         cost: +m.el.querySelector('#fcost').value || 0,
         stock: Math.max(0, Math.floor(+m.el.querySelector('#fstock').value || 0)),
@@ -154,5 +167,6 @@ export default async function render(root, { user }) {
   root.querySelector('#btnAdd').onclick = () => openForm();
   q.addEventListener('input', renderList);
   cat.addEventListener('change', renderList);
+  loc.addEventListener('change', renderList);
   refreshCats(); renderList();
 }
